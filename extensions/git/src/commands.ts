@@ -819,15 +819,8 @@ export class CommandCenter {
 		resourceStates = resourceStates.filter(s => !!s);
 
 		if (resourceStates.length === 0 || (resourceStates[0] && !(resourceStates[0].resourceUri instanceof Uri))) {
-			const resource = this.getSCMResource();
-
-			this.outputChannel.appendLine(`git.stage.getSCMResource ${resource ? resource.resourceUri.toString() : null}`);
-
-			if (!resource) {
-				return;
-			}
-
-			resourceStates = [resource];
+			this._stageActiveTextEditor();
+			return;
 		}
 
 		const selection = resourceStates.filter(s => s instanceof Resource) as Resource[];
@@ -871,6 +864,20 @@ export class CommandCenter {
 
 		const resources = scmResources.map(r => r.resourceUri);
 		await this.runByRepository(resources, async (repository, resources) => repository.add(resources));
+	}
+
+	private async _stageActiveTextEditor() {
+		const textEditor = window.activeTextEditor;
+
+		if (!textEditor) {
+			return;
+		}
+
+		const document = textEditor.document;
+		await this.runByRepository(
+			document.uri,
+			async (repository, resource) => await repository.stage(resource, document.getText())
+		);
 	}
 
 	@command('git.stageAll', { repository: true })
